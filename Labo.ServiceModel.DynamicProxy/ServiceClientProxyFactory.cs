@@ -57,9 +57,10 @@ namespace Labo.ServiceModel.DynamicProxy
 
         private ServiceEndpoint GetEndpoint(string contractName, string contractNamespace)
         {
-            for (int i = 0; i < Endpoints.Count; i++)
+            Collection<ServiceEndpoint> serviceEndpoints = Endpoints;
+            for (int i = 0; i < serviceEndpoints.Count; i++)
             {
-                ServiceEndpoint endpoint = Endpoints[i];
+                ServiceEndpoint endpoint = serviceEndpoints[i];
                 if (string.Compare(endpoint.Contract.Name, contractName, StringComparison.OrdinalIgnoreCase) == 0 &&
                     string.Compare(endpoint.Contract.Namespace, contractNamespace, StringComparison.OrdinalIgnoreCase) == 0)
                 {

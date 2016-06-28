@@ -9,6 +9,8 @@ using Labo.ServiceModel.DynamicProxy;
 
 namespace Labo.WcfTestClient.Win.UI
 {
+    using System.ServiceModel.Channels;
+
     public partial class AddServiceForm : Form
     {
         private string Wsdl
@@ -47,26 +49,35 @@ namespace Labo.WcfTestClient.Win.UI
                 ServiceClientProxyFactory proxyFactory = proxyFactoryGenerator.GenerateProxyFactory(Wsdl);
                 List<ServiceInfo> serviceInfos = new List<ServiceInfo>();
                 ServiceInfo serviceInfo = new ServiceInfo { Wsdl = Wsdl, Config = proxyFactory.Config };
-                for (int index = 0; index < proxyFactory.Contracts.Count; index++)
-                {
-                    ContractDescription contractDescription = proxyFactory.Contracts[index];
-                    string contractName = contractDescription.Name;
-                    ServiceClientProxy proxy = proxyFactory.CreateProxy(contractName, contractDescription.Namespace);
-                    string[] operationNames = contractDescription.Operations.Select(x => x.Name).ToArray();
-                    ContractInfo contractInfo = new ContractInfo {Proxy = proxy, ContractName = contractName};
+                Collection<ContractDescription> contractDescriptions = proxyFactory.Contracts;
+                Collection<Binding> bindings = proxyFactory.Bindings;
+                Collection<ServiceEndpoint> serviceEndpoints = proxyFactory.Endpoints;
 
-                    for (int i = 0; i < operationNames.Length; i++)
+                for (int i = 0; i < serviceEndpoints.Count; i++)
+                {
+                    ServiceEndpoint serviceEndpoint = serviceEndpoints[i];
+                    ContractDescription contractDescription = serviceEndpoint.Contract;
+                    string contractName = contractDescription.Name;
+
+                    ServiceClientProxy proxy = proxyFactory.CreateProxy(serviceEndpoint);
+
+                    string[] operationNames = contractDescription.Operations.Select(x => x.Name).ToArray();
+                    ContractInfo contractInfo = new ContractInfo { Proxy = proxy, ContractName = contractName };
+                    EndPointInfo endPointInfo = new EndPointInfo { BindingName = serviceEndpoint.Binding.Name, ContractInfo = contractInfo };
+
+                    for (int j = 0; j < operationNames.Length; j++)
                     {
-                        string operationName = operationNames[i];
+                        string operationName = operationNames[j];
                         object instance = proxy.CreateInstance();
                         using (instance as IDisposable)
                         {
                             Method method = ReflectionUtils.GetMethodDefinition(instance, operationName);
-                            contractInfo.Operations.Add(new OperationInfo {Contract = contractInfo, Method = method});
+                            contractInfo.Operations.Add(new OperationInfo { Contract = contractInfo, Method = method });
                         }
                     }
-                    serviceInfo.Contracts.Add(contractInfo);
+                    serviceInfo.EndPoints.Add(endPointInfo);
                 }
+
                 serviceInfos.Add(serviceInfo);
 
                 m_Services = serviceInfos.AsReadOnly();

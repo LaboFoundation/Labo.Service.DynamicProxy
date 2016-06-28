@@ -24,6 +24,7 @@ namespace Labo.ServiceModel.DynamicProxy
             CodeCompileUnit codeCompileUnit = serviceMetadataInfo.CodeCompileUnit;
             ServiceContractGenerator contractGenerator = new ServiceContractGenerator(codeCompileUnit, CreateConfig(new FileInfo(tempConfigFileName)));
             contractGenerator.Options |= ServiceContractGenerationOptions.ClientClass;
+            contractGenerator.Options |= ServiceContractGenerationOptions.TypedMessages;
 
             for (int i = 0; i < serviceMetadataInfo.Contracts.Count; i++)
             {
@@ -65,6 +66,9 @@ namespace Labo.ServiceModel.DynamicProxy
             CompilerResults results = codeDomProvider.CompileAssemblyFromSource(compilerParameters, proxyCode);
 
             CompilerErrorCollection compileErrors = results.Errors;
+
+            // TODO: Throw compile errors.
+
             Assembly compiledAssembly = Assembly.LoadFile(results.PathToAssembly);
             return new ServiceClientProxyCompileResult(serviceMetadataInfo, compiledAssembly, GenerateConfig(contractGenerator, serviceMetadataInfo.Endpoints, tempConfigFileName));
         }

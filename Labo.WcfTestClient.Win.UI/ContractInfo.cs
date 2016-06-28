@@ -3,6 +3,9 @@ using Labo.ServiceModel.DynamicProxy;
 
 namespace Labo.WcfTestClient.Win.UI
 {
+    using System;
+
+    [Serializable]
     public sealed class ContractInfo
     {
         private List<OperationInfo> m_Operations;
