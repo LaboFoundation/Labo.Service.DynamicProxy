@@ -9,15 +9,25 @@ using Microsoft.VisualStudio.VirtualTreeGrid;
 
 namespace Labo.WcfTestClient.Win.UI
 {
+    using System.Reflection;
+
+    using Labo.Common.Reflection;
+    using Labo.ServiceModel.Core;
+
+    using Parameter = Labo.ServiceModel.Core.Utils.Reflection.Parameter;
+
     public partial class OperationInvokerUserControl : UserControl
     {
         private readonly OperationInfo m_Operation;
 
-        public OperationInvokerUserControl(OperationInfo operationInfo)
+        private readonly IReflectionHelper m_ReflectionHelper;
+
+        public OperationInvokerUserControl(OperationInfo operationInfo, IReflectionHelper reflectionHelper)
         {
             InitializeComponent();
 
             m_Operation = operationInfo;
+            m_ReflectionHelper = reflectionHelper;
 
             VirtualTreeColumnHeader[] columnHeaders = new[]
                 {
@@ -31,17 +41,17 @@ namespace Labo.WcfTestClient.Win.UI
             PopulateTree(operationInfo.Method.Parameters, inputControl, false);
         }
 
-        private static void PopulateTree(IEnumerable<Parameter> parameters, VirtualTreeControl parameterTreeView, bool readOnly)
+        private void PopulateTree(IEnumerable<Parameter> parameters, VirtualTreeControl parameterTreeView, bool readOnly)
         {
             PopulateTree(parameters.Cast<Member>().ToList(), parameterTreeView, readOnly);
         }
 
-        private static void PopulateTree(IEnumerable<Member> parameters, VirtualTreeControl parameterTreeView, bool readOnly)
+        private void PopulateTree(IEnumerable<Member> parameters, VirtualTreeControl parameterTreeView, bool readOnly)
         {
             PopulateTree(parameters.Select(x => new MemberInfo { Member = x }).ToList(), parameterTreeView, readOnly);
         }
 
-        private static void PopulateTree(IList<MemberInfo> parameters, VirtualTreeControl parameterTreeView, bool readOnly)
+        private void PopulateTree(IList<MemberInfo> parameters, VirtualTreeControl parameterTreeView, bool readOnly)
         {
             CreateRootTree(parameters, parameterTreeView, readOnly);
 
@@ -60,11 +70,11 @@ namespace Labo.WcfTestClient.Win.UI
             }
         }
 
-        private static void CreateRootTree(IList<MemberInfo> parameters, VirtualTreeControl parameterTreeView, bool readOnly)
+        private void CreateRootTree(IList<MemberInfo> parameters, VirtualTreeControl parameterTreeView, bool readOnly)
         {
             parameterTreeView.MultiColumnTree = new MultiColumnTree(3);
             ITree tree = (ITree)parameterTreeView.MultiColumnTree;
-            OperationParameterTree operationParameterTree = new OperationParameterTree(3, tree, parameterTreeView, parameters, readOnly, null);
+            OperationParameterTree operationParameterTree = new OperationParameterTree(3, tree, parameterTreeView, parameters, readOnly, m_ReflectionHelper, null);
             tree.Root = operationParameterTree;
         }
 
@@ -81,7 +91,7 @@ namespace Labo.WcfTestClient.Win.UI
                 {
                     result = ReflectionUtils.InvokeMethod(instance, m_Operation.Method.Name, parameters);
                 }
-              
+
                 if (result == null)
                 {
                     Instance returnValue = m_Operation.Method.ReturnValue;
@@ -91,7 +101,7 @@ namespace Labo.WcfTestClient.Win.UI
                 {
                     Class @class = ReflectionUtils.GetClassDefinition(result.GetType());
                     Parameter parameter;
-                    if(@class.IsClass)
+                    if (@class.IsClass)
                     {
                         parameter = new Parameter { Definition = @class, Name = "(return)", Type = @class.Type };
                     }
@@ -123,9 +133,10 @@ namespace Labo.WcfTestClient.Win.UI
             OperationParameterTree operationParameterTree = ((OperationParameterTree)((ITree)inputControl.MultiColumnTree).Root);
             
             IDictionary<string, ReflectionUtils.Parameter> dictionary = new Dictionary<string, ReflectionUtils.Parameter>();
-            for (int i = 0; i < operationParameterTree.Parameters.Count; i++)
+            IList<MemberInfo> memberInfos = operationParameterTree.Parameters;
+            for (int i = 0; i < memberInfos.Count; i++)
             {
-                MemberInfo memberInfo = operationParameterTree.Parameters[i];
+                MemberInfo memberInfo = memberInfos[i];
                 object value = memberInfo.Value;
                 dictionary.Add(memberInfo.Member.Name, new ReflectionUtils.Parameter { Value = value, Type = memberInfo.Member.Type });
 
@@ -134,15 +145,26 @@ namespace Labo.WcfTestClient.Win.UI
             return dictionary;
         }
 
-        private static void SetProperties(object value, int row, OperationParameterTree operationParameterTree)
+        private void SetProperties(object value, int row, OperationParameterTree operationParameterTree)
         {
             OperationParameterTree childOperationParameterTree = operationParameterTree.Children[row];
             if (childOperationParameterTree != null && value != null)
             {
-                for (int i = 0; i < childOperationParameterTree.Parameters.Count; i++)
+                IList<MemberInfo> memberInfos = childOperationParameterTree.Parameters;
+                for (int i = 0; i < memberInfos.Count; i++)
                 {
-                    MemberInfo parameter = childOperationParameterTree.Parameters[i];
-                    DynamicMethodCompilerCache.SetPropertyValue(value, parameter.Member.Name, parameter.Value);
+                    MemberInfo parameter = memberInfos[i];
+                    Member member = parameter.Member;
+                    if (member is Property)
+                    {
+                        m_ReflectionHelper.SetPropertyValue(value, member.Name, parameter.Value);
+                    }
+                    else
+                    {
+                        Type type = value.GetType();
+
+                        type.GetField(member.Name, BindingFlags.Instance | BindingFlags.Public).SetValue(value, parameter.Value);
+                    }
 
                     SetProperties(parameter.Value, i, childOperationParameterTree);
                 }

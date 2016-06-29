@@ -2,12 +2,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
-using Labo.ServiceModel.Core.Utils.Conversion;
 using Labo.ServiceModel.Core.Utils.Reflection;
 using Microsoft.VisualStudio.VirtualTreeGrid;
 
 namespace Labo.WcfTestClient.Win.UI
 {
+    using System;
+    using System.Reflection;
+
+    using Labo.Common.Utils;
+    using Labo.ServiceModel.Core;
+
     public sealed class OperationParameterTree :  IMultiColumnBranch, IBranch
     {
         private const string NULL_VALUE_TEXT = "(null)";
@@ -88,6 +93,9 @@ namespace Labo.WcfTestClient.Win.UI
         private readonly VirtualTreeControl m_VirtualTreeControl;
         private readonly IList<MemberInfo> m_Parameters;
         private readonly bool m_ReadOnly;
+
+        private readonly IReflectionHelper m_ReflectionHelper;
+
         private readonly OperationParameterTree m_Parent;
         private readonly OperationParameterTree[] m_Children;
         private int m_RelativeRow;
@@ -113,13 +121,14 @@ namespace Labo.WcfTestClient.Win.UI
             get { return m_ColumnCount; }
         }
 
-        public OperationParameterTree(int columnCount, ITree virtualTree, VirtualTreeControl virtualTreeControl, IList<MemberInfo> parameters, bool readOnly, OperationParameterTree parent)
+        public OperationParameterTree(int columnCount, ITree virtualTree, VirtualTreeControl virtualTreeControl, IList<MemberInfo> parameters, bool readOnly, IReflectionHelper reflectionHelper, OperationParameterTree parent)
         {
             m_ColumnCount = columnCount;
             m_VirtualTree = virtualTree;
             m_VirtualTreeControl = virtualTreeControl;
             m_Parameters = parameters;
             m_ReadOnly = readOnly;
+            m_ReflectionHelper = reflectionHelper;
             m_Parent = parent;
             m_Children = new OperationParameterTree[parameters.Count];
         }
@@ -181,14 +190,39 @@ namespace Labo.WcfTestClient.Win.UI
                 }
                 else
                 {
-                    memberInfo.Value = DynamicMethodCompilerCache.CreateInstance(memberInfo.Member.Type);
+                    object instance = m_ReflectionHelper.CreateInstance(memberInfo.Member.Type);
+                    if (instance != null)
+                    {
+                        Type objectType = instance.GetType();
+                        PropertyInfo[] properties = objectType.GetProperties();
+                        for (int i = 0; i < properties.Length; i++)
+                        {
+                            PropertyInfo property = properties[i];
+                            if (property.CanWrite)
+                            {
+                                m_ReflectionHelper.SetPropertyValue(instance, property, m_ReflectionHelper.CreateInstance(property.PropertyType));
+                            }
+                        }
+
+                        FieldInfo[] fieldInfos = objectType.GetFields(BindingFlags.Instance | BindingFlags.Public);
+                        for (int i = 0; i < fieldInfos.Length; i++)
+                        {
+                            FieldInfo fieldInfo = fieldInfos[i];
+                            if (!fieldInfo.IsInitOnly)
+                            {
+                                fieldInfo.SetValue(instance, m_ReflectionHelper.CreateInstance(fieldInfo.FieldType));
+                            }
+                        }
+                    }
+
+                    memberInfo.Value = instance;
                 }
             }
             else
             {
                 try
                 {
-                    memberInfo.Value = ConversionUtils.ChangeType(newText, memberInfo.Member.Type);
+                    memberInfo.Value = ConvertUtils.ChangeType(newText, memberInfo.Member.Type);
                 }
                 catch
                 {
@@ -256,25 +290,21 @@ namespace Labo.WcfTestClient.Win.UI
 
         public OperationParameterTree AddChild(int row, Class @class, object value)
         {
-            return AddChild(
-                row,
-                @class == null
-                    ? new List<MemberInfo>(0)
-                    : @class.Properties.Select(
-                        x =>
-                        new MemberInfo
-                            {
-                                Member = x,
-                                Value = value == null ? null : DynamicMethodCompilerCache.GetPropertyValue(value, x.Name)
-                            }).ToList());
+            IList<MemberInfo> memberInfos = @class == null
+                                   ? new List<MemberInfo>(0)
+                                   : @class.Properties.Select(
+                                       x =>
+                                       new MemberInfo
+                                           {
+                                               Member = x,
+                                               Value = value == null ? null : x is Property ? m_ReflectionHelper.GetPropertyValue(value, x.Name) : value.GetType().GetField(x.Name).GetValue(value)
+                                           }).ToList();
+            return AddChild(row,  memberInfos);
         }
 
         public OperationParameterTree AddChild(int row, IList<MemberInfo> memberInfos)
         {
-            return
-                m_Children[row] =
-                new OperationParameterTree(
-                    m_ColumnCount, m_VirtualTree, m_VirtualTreeControl, memberInfos, m_ReadOnly, this);
+            return m_Children[row] = new OperationParameterTree(m_ColumnCount, m_VirtualTree, m_VirtualTreeControl, memberInfos, m_ReadOnly, m_ReflectionHelper, this);
         }
 
         public string GetText(int row, int column)
@@ -290,7 +320,7 @@ namespace Labo.WcfTestClient.Win.UI
                 {
                     return memberInfo.Value == null ? NULL_VALUE_TEXT : memberInfo.Member.Type.FullName;
                 }
-                return ConversionUtils.ChangeType<string>(memberInfo.Value);
+                return ConvertUtils.ChangeType<string>(memberInfo.Value);
             }
             if (column == 2)
             {
