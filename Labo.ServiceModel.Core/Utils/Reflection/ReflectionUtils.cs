@@ -1,109 +1,16 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System;
-using System.Globalization;
-using Labo.ServiceModel.Core.Utils.Conversion;
-using Labo.ServiceModel.Core.Utils.Reflection.Exceptions;
-
-namespace Labo.ServiceModel.Core.Utils.Reflection
+﻿namespace Labo.ServiceModel.Core.Utils.Reflection
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Globalization;
+    using System.Linq;
+    using System.Reflection;
+
+    using Common.Utils;
+    using Exceptions;
+
     public static class ReflectionUtils
     {
-        /// <summary>
-        /// Gets the custom attribute.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="memberInfo">The member info.</param>
-        /// <returns></returns>
-        public static T GetCustomAttribute<T>(MemberInfo memberInfo)
-            where T : class
-        {
-            return GetCustomAttribute<T>(memberInfo, false);
-        }
-
-        /// <summary>
-        /// Gets the custom attribute.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="parameterInfo">The parameter info.</param>
-        /// <returns></returns>
-        public static T GetCustomAttribute<T>(ParameterInfo parameterInfo)
-            where T : class
-        {
-            return GetCustomAttribute<T>(parameterInfo, false);
-        }
-
-        /// <summary>
-        /// Gets the custom attribute.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="parameterInfo">The parameter info.</param>
-        /// <param name="inherit">if set to <c>true</c> [inherit].</param>
-        /// <returns></returns>
-        public static T GetCustomAttribute<T>(ParameterInfo parameterInfo, bool inherit)
-            where T : class 
-        {
-            object[] attributes = parameterInfo.GetCustomAttributes(typeof(T), inherit);
-            if (attributes.Length == 0)
-            {
-                return null;
-            }
-            return (T)attributes[0];
-        }
-
-        /// <summary>
-        /// Gets the custom attribute.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="memberInfo">The member info.</param>
-        /// <param name="inherit">if set to <c>true</c> [inherit].</param>
-        /// <returns></returns>
-        public static T GetCustomAttribute<T>(MemberInfo memberInfo, bool inherit)
-            where T : class
-        {
-            object[] attributes = memberInfo.GetCustomAttributes(typeof(T), inherit);
-            if (attributes.Length == 0)
-            {
-                return null;
-            }
-            return (T)attributes[0];
-        }
-
-        /// <summary>
-        /// Determines whether [has custom attribute] [the specified member info].
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="memberInfo">The member info.</param>
-        /// <param name="inherit">if set to <c>true</c> [inherit].</param>
-        /// <returns>
-        ///   <c>true</c> if [has custom attribute] [the specified member info]; otherwise, <c>false</c>.
-        /// </returns>
-        public static bool HasCustomAttribute<T>(MemberInfo memberInfo, bool inherit)
-           where T : class
-        {
-            return GetCustomAttribute<T>(memberInfo, inherit) != null;
-        }
-
-        /// <summary>
-        /// Gets the custom attributes.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="memberInfo">The member info.</param>
-        /// <param name="inherit">if set to <c>true</c> [inherit].</param>
-        /// <returns></returns>
-        public static List<T> GetCustomAttributes<T>(MemberInfo memberInfo, bool inherit)
-            where T : class
-        {
-           object[] attributes = memberInfo.GetCustomAttributes(typeof(T), inherit);
-            List<T> result = new List<T>(attributes.Length);
-            for (int i = 0; i < attributes.Length; i++)
-            {
-                result.Add((T)attributes[i]);
-            }
-            return result;
-        }
-
         /// <summary>
         /// Gets the name of the method by.
         /// </summary>
@@ -130,7 +37,7 @@ namespace Labo.ServiceModel.Core.Utils.Reflection
             for (int i = 0; i < methodInfos.Length; i++)
             {
                 MethodInfo methodInfo = methodInfos[i];
-                if(methodInfo.Name == methodName)
+                if (methodInfo.Name == methodName)
                 {
                     ParameterInfo[] parameterInfos = methodInfo.GetParameters();
 
@@ -147,14 +54,14 @@ namespace Labo.ServiceModel.Core.Utils.Reflection
                         for (int j = 0; j < parameterInfos.Length; j++)
                         {
                             ParameterInfo parameterInfo = parameterInfos[j];
-                            if(parameterInfo.Name == parameter.Key && parameterInfo.ParameterType == parameter.Value)
+                            if (parameterInfo.Name == parameter.Key && parameterInfo.ParameterType == parameter.Value)
                             {
                                 parameterFound = true;
                                 break;
                             }
                         }
 
-                        if(!parameterFound)
+                        if (!parameterFound)
                         {
                             break;
                         }
@@ -241,7 +148,7 @@ namespace Labo.ServiceModel.Core.Utils.Reflection
             }
 
             ParameterInfo[] parameterInfos = methodInfo.GetParameters();
-            if(parameterInfos.Length != parameters.Count)
+            if (parameterInfos.Length != parameters.Count)
             {
                 throw new ReflectionUtilsException(String.Format("'{0}' method parameters count doesn't match the specified parameters count", methodInfo));
             }
@@ -251,13 +158,13 @@ namespace Labo.ServiceModel.Core.Utils.Reflection
             {
                 ParameterInfo parameterInfo = parameterInfos[i];
                 Parameter parameter;
-                
-                if(!parameters.TryGetValue(parameterInfo.Name, out parameter))
+
+                if (!parameters.TryGetValue(parameterInfo.Name, out parameter))
                 {
-                    throw new ReflectionUtilsException(String.Format("'{0}' parameter doesn't exist in '{1}' method", parameterInfo.Name, methodInfo));                    
+                    throw new ReflectionUtilsException(String.Format("'{0}' parameter doesn't exist in '{1}' method", parameterInfo.Name, methodInfo));
                 }
 
-                arguments[parameterInfo.Position] = ConversionUtils.ChangeType(parameter.Value, parameter.Type);
+                arguments[parameterInfo.Position] = ConvertUtils.ChangeType(parameter.Value, parameter.Type);
             }
 
             return methodInfo.Invoke(@object, bindingFlags, null, arguments, CultureInfo.CurrentCulture);
@@ -323,19 +230,21 @@ namespace Labo.ServiceModel.Core.Utils.Reflection
             }
 
             @class = new Class { Type = classType };
-            if(classType.IsValueType || classType == typeof(string))
+
+            if (classType.IsValueType || classType == typeof(string))
             {
                 return @class;
             }
+
             PropertyInfo[] propertyInfos = classType.GetProperties();
             for (int j = 0; j < propertyInfos.Length; j++)
             {
                 PropertyInfo propertyInfo = propertyInfos[j];
                 Type propertyType = propertyInfo.PropertyType;
-                Property property = new Property { Name = propertyInfo.Name, Type = propertyType };
+                Member property = new Property { Name = propertyInfo.Name, Type = propertyType };
                 if (!propertyType.IsValueType && propertyType != typeof(string))
                 {
-                    if(classType == propertyType)
+                    if (classType == propertyType)
                     {
                         property.Definition = @class;
                     }
@@ -346,6 +255,27 @@ namespace Labo.ServiceModel.Core.Utils.Reflection
                 }
                 
                 @class.Properties.Add(property);
+            }
+
+            FieldInfo[] fieldInfos = classType.GetFields(BindingFlags.Instance | BindingFlags.Public);
+            for (int j = 0; j < fieldInfos.Length; j++)
+            {
+                FieldInfo fieldInfo = fieldInfos[j];
+                Type fieldType = fieldInfo.FieldType;
+                Member field = new Field { Name = fieldInfo.Name, Type = fieldType };
+                if (!fieldType.IsValueType && fieldType != typeof(string))
+                {
+                    if (classType == fieldType)
+                    {
+                        field.Definition = @class;
+                    }
+                    else
+                    {
+                        field.Definition = GetClassDefinition(fieldType, classDefinitions);
+                    }
+                }
+
+                @class.Properties.Add(field);
             }
             classDefinitions[classType] = @class;
             @class.Definition = @class;
