@@ -2,6 +2,9 @@
 
 namespace Labo.WcfTestClient.Win.UI
 {
+    using System;
+
+    [Serializable]
     public sealed class OperationInfo
     {
         public ContractInfo Contract { get; set; }

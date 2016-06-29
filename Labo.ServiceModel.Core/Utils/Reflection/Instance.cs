@@ -2,6 +2,7 @@ using System;
 
 namespace Labo.ServiceModel.Core.Utils.Reflection
 {
+    [Serializable]
     public class Instance
     {
         public Type Type { get; set; }

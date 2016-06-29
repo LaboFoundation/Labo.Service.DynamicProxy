@@ -32,6 +32,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Labo.Common, Version=0.1.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Labo.Commons.1.0.1\lib\net45\Labo.Common.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="Microsoft.VisualStudio.VirtualTreeGrid, Version=11.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\sharedlibs\Microsoft.VisualStudio.VirtualTreeGrid.dll</HintPath>
@@ -56,6 +60,7 @@
       <DependentUpon>AddServiceForm.cs</DependentUpon>
     </Compile>
     <Compile Include="ContractInfo.cs" />
+    <Compile Include="EndPointInfo.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -110,6 +115,7 @@
     <EmbeddedResource Include="ShowErrorForm.resx">
       <DependentUpon>ShowErrorForm.cs</DependentUpon>
     </EmbeddedResource>
+    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>

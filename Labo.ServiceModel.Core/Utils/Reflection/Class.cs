@@ -2,14 +2,17 @@ using System.Collections.Generic;
 
 namespace Labo.ServiceModel.Core.Utils.Reflection
 {
+    using System;
+
+    [Serializable]
     public sealed class Class : Instance
     {
-        private IList<Property> m_Properties;
-        public IList<Property> Properties
+        private IList<Member> m_Properties;
+        public IList<Member> Properties
         {
             get
             {
-                return m_Properties ?? (m_Properties = new List<Property>());
+                return m_Properties ?? (m_Properties = new List<Member>());
             }
         }
     }

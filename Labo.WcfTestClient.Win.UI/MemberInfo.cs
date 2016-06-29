@@ -1,8 +1,11 @@
-﻿using Labo.ServiceModel.Core.Utils;
-using Labo.ServiceModel.Core.Utils.Reflection;
-
-namespace Labo.WcfTestClient.Win.UI
+﻿namespace Labo.WcfTestClient.Win.UI
 {
+    using System;
+
+    using Labo.Common.Utils;
+    using Labo.ServiceModel.Core.Utils.Reflection;
+
+    [Serializable]
     public sealed class MemberInfo
     {
         public Member Member { get; set; }

@@ -9,6 +9,8 @@ using Labo.ServiceModel.Core.Utils.Reflection;
 
 namespace Labo.ServiceModel.DynamicProxy
 {
+    using Labo.Common.Utils;
+
     [Serializable]
     public sealed class ServiceClientProxyFactory
     {

@@ -8,12 +8,12 @@ namespace Labo.WcfTestClient.Win.UI
     {
         public string Wsdl { get; set; }
 
-        private List<ContractInfo> m_Contracts;
-        public List<ContractInfo> Contracts
+        private IList<EndPointInfo> m_EndPoints;
+        public IList<EndPointInfo> EndPoints
         {
             get
             {
-                return m_Contracts ?? (m_Contracts = new List<ContractInfo>());
+                return m_EndPoints ?? (m_EndPoints = new List<EndPointInfo>());
             }
         }
 
