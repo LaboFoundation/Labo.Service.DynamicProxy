@@ -49,8 +49,6 @@ namespace Labo.WcfTestClient.Win.UI
                 ServiceClientProxyFactory proxyFactory = proxyFactoryGenerator.GenerateProxyFactory(Wsdl);
                 List<ServiceInfo> serviceInfos = new List<ServiceInfo>();
                 ServiceInfo serviceInfo = new ServiceInfo { Wsdl = Wsdl, Config = proxyFactory.Config };
-                Collection<ContractDescription> contractDescriptions = proxyFactory.Contracts;
-                Collection<Binding> bindings = proxyFactory.Bindings;
                 Collection<ServiceEndpoint> serviceEndpoints = proxyFactory.Endpoints;
 
                 for (int i = 0; i < serviceEndpoints.Count; i++)

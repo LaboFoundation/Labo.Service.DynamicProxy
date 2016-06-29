@@ -1,11 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Windows.Forms;
-
-namespace Labo.WcfTestClient.Win.UI
+﻿namespace Labo.WcfTestClient.Win.UI
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Globalization;
+    using System.Windows.Forms;
+
+    using Labo.ServiceModel.Core;
+
     public partial class MainForm : Form
     {
+        private readonly IReflectionHelper m_ReflectionHelper;
+
         private List<ServiceInfo> m_ServiceInfos;
         private List<ServiceInfo> ServiceInfos
         {
@@ -18,6 +23,8 @@ namespace Labo.WcfTestClient.Win.UI
         public MainForm()
         {
             InitializeComponent();
+
+            m_ReflectionHelper = new DefaultReflectionHelper();
         }
 
         private void AddServiceToolStripMenuItemClick(object sender, EventArgs e)
@@ -43,28 +50,33 @@ namespace Labo.WcfTestClient.Win.UI
                 ServiceInfo serviceInfo = ServiceInfos[i];
                 TreeNode serviceNode = new TreeNode(serviceInfo.Wsdl);
 
-                List<ContractInfo> contractInfos = serviceInfo.Contracts;
-                for (int j = 0; j < contractInfos.Count; j++)
+                IList<EndPointInfo> endpointInfos = serviceInfo.EndPoints;
+                for (int j = 0; j < endpointInfos.Count; j++)
                 {
-                    ContractInfo contractInfo = contractInfos[j];
-                    TreeNode contractNode = new TreeNode(contractInfo.ContractName);
+                    EndPointInfo endPointInfo = endpointInfos[j];
+                    ContractInfo contractInfo = endPointInfo.ContractInfo;
+                    TreeNode contractNode = new TreeNode(string.Format(CultureInfo.CurrentCulture, "{0} ({1})", contractInfo.ContractName, endPointInfo.BindingName));
 
                     List<OperationInfo> operationInfos = contractInfo.Operations;
                     for (int k = 0; k < operationInfos.Count; k++)
                     {
                         OperationInfo operationInfo = operationInfos[k];
-                        TreeNode operationNode = new TreeNode(operationInfo.Method.Name);
-                        operationNode.Tag = operationInfo;
+                        TreeNode operationNode = new TreeNode(operationInfo.Method.Name)
+                                                     {
+                                                         Tag = operationInfo
+                                                     };
                         contractNode.Nodes.Add(operationNode);
                     }
 
                     serviceNode.Nodes.Add(contractNode);
                 }
 
-                TreeNode configNode = new TreeNode("Config");
-                configNode.Name = "ConfigNode";
-                configNode.Tag = serviceInfo.Config;
-                configNode.ToolTipText = serviceInfo.Wsdl + " Config";
+                TreeNode configNode = new TreeNode("Config")
+                                          {
+                                              Name = "ConfigNode",
+                                              Tag = serviceInfo.Config,
+                                              ToolTipText = serviceInfo.Wsdl + " Config"
+                                          };
                 serviceNode.Nodes.Add(configNode);
 
                 tvwServices.Nodes.Add(serviceNode);
@@ -80,8 +92,10 @@ namespace Labo.WcfTestClient.Win.UI
             if (selectedNode.Name == "ConfigNode")
             {
                 TabPage tabPage = new TabPage(selectedNode.ToolTipText);
-                ServiceConfigUserControl serviceConfigUserControl = new ServiceConfigUserControl(selectedNode.Tag.ToString());
-                serviceConfigUserControl.Dock = DockStyle.Fill;
+                ServiceConfigUserControl serviceConfigUserControl = new ServiceConfigUserControl(selectedNode.Tag.ToString())
+                {
+                    Dock = DockStyle.Fill
+                };
                 tabPage.Controls.Add(serviceConfigUserControl);
                 tbOperations.TabPages.Add(tabPage);
             }
@@ -91,8 +105,10 @@ namespace Labo.WcfTestClient.Win.UI
                 if (operationInfo != null)
                 {
                     TabPage tabPage = new TabPage(operationInfo.Method.Name);
-                    OperationInvokerUserControl operationInvokerUserControl = new OperationInvokerUserControl(operationInfo);
-                    operationInvokerUserControl.Dock = DockStyle.Fill;
+                    OperationInvokerUserControl operationInvokerUserControl = new OperationInvokerUserControl(operationInfo, m_ReflectionHelper)
+                    {
+                        Dock = DockStyle.Fill
+                    };
                     tabPage.Controls.Add(operationInvokerUserControl);
                     tbOperations.TabPages.Add(tabPage);
                 }
